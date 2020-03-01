@@ -1,2 +1,0 @@
-# SmokeD
-Repository for SmokeD
