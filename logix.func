@@ -1,1 +1,31 @@
+# File Written By: @relaylogix
+# File SD: 28-03-2020
+# File Format: BASH
+# Include File For Functions
 
+# Clean String Function:0.0.1
+# String Trimming Function
+
+clean_string()
+{
+  # Function requires 2 lengths and 1 string
+  # 0 is valid for a passed value
+        # Number Of Chars To Remove From Front
+        front=$1
+        # Number Of Chars To Remove From End
+        end=$2
+        # String To Manipulate
+        str_to_clean=$3
+
+  # Compute numeric values for trimming
+        # Overall cut length
+        str_drop_off_len=$(($front+$end))
+        # Final string length
+        pull_length=$((${#str_to_clean}-$str_drop_off_len))
+
+  # Drop off front of passed in string
+        temp_str=${str_to_clean:$front}
+
+  # Drop off the remainder of the end of the string
+        CLEANED_STRING=${temp_str:0:$pull_length}
+}
