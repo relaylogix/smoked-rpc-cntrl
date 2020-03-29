@@ -29,3 +29,4 @@ clean_string()
   # Drop off the remainder of the end of the string
         CLEANED_STRING=${temp_str:0:$pull_length}
 }
+ 
