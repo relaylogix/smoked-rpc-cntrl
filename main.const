@@ -1,0 +1,16 @@
+File Written By: @relaylogix
+File SD: 28-03-2020
+
+# CONSTANTS
+
+# (INFO)
+relay="http://smoke.io/@relaylogix
+remail="relaylogix@gmail.com"
+
+# (COLOR)
+red='\e[91m'
+green='\e[92m'
+blue='\e[94m'
+white='\e[0m'
+yellow='\e[93m'
+cyan='\e[96m'
