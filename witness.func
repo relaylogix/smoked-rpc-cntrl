@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# File written by: @relaylogix
+# File purpose: To alert witnesses of a server missing blocks
+# File SD: 26.03.2020
+
+# Initialize tracking variables
+
+init=0
+last_missed[0]=0
+last_missed[1]=0
+
+# Function to manipulate string 
+clean_string()
+{
+	# Track Data Validity
+	GOOD_DATA=0
+
+# Input parameters
+# 	Specify the number of characters in the begining of the string to drop [front]
+# 	Specify the number of characters on the end of the string to drop [end]
+# 	Specify a string to clean [str_to_clean]
+
+	# User specified ammount of characters to drop off the front
+        front=$1
+	# User specified ammount of characters to drop off the end
+        end=$2
+	# User specified string to clean
+        str_to_clean=$3
+
+	# numeric values for extraction
+
+	# Overall cut length
+	str_drop_off_len=$(($front+$end))
+	# Overall length of string to pull out
+        pull_length=$((${#str_to_clean}-$str_drop_off_len))
+
+	# drop off front of passed in string
+        temp_str=${str_to_clean:$front}
+
+	# Check for data validity
+        if [ "$pull_length" > 0 ]; then
+		# Drop off the remainder of the string
+                CLEANED_STRING=${temp_str:0:$pull_length}
+		# Data is valid
+                GOOD_DATA=1
+        fi
+}
+
+# Function to call Smoke RPC and return witness missed blocks
+witness_missed_blocks()
+{
+# Input Parameters
+#	Specify the witness name for missed block return [witness_uname]
+
+	# Name of witness to use for missed block search
+	witness_uname=$1
+
+	# Get raw data from RPC server
+        ret_data=`curl -s --data '{"jsonrpc":"2.0","method":"get_witness_by_account", "params":["'$witness_uname'"], "id":1}' https://pubrpc.smoke.io`
+        
+	# Clean off constant JSONRPC return id result data
+	clean_string 17 1 ${ret_data}
+
+	# Initialize parse variables
+	
+	curWord=""
+        strLength=0
+        iCount=0
+        POS_missed=0
+        POS_last=0
+        
+	# Set Length Of Data To Parse
+        strLength=$((${#ret_data}-0))
+
+        until [ "${iCount}" = "${strLength}" ]; do
+
+                # Test For Extraction Start Locations
+
+                # Find start of missed blocks data
+                curWord=${ret_data:${iCount}:9}
+                
+		if [ "${curWord}" = '_missed''"'':' ]; then
+                
+		        # Set start position of total_missed data
+                        POS_missed=$((${iCount}+9))
+                fi
+                # Find start of last_aslot data
+                curWord=${ret_data:${iCount}:11}
+
+                if [ "${curWord}" = ',''"''last_aslo' ]; then
+                        # Set start position of last_aslot data
+                        POS_last=$((${iCount}+0))
+                fi
+		# Increment extraction start location
+                iCount=$(($iCount+1))
+        done
+
+	# Initialize data extraction variables
+        PULLLEN=0
+        MISSED=""
+
+	# Set missed blocks digit count
+        PULLLEN=$((${POS_last}-${POS_missed}))
+	# Extract missed block data
+        MISSED=${ret_data:${POS_missed}:${PULLLEN}}
+        return
+}
+
+# Main code scan control
+
+while :
+do
+	# Check current scan missed blocks for witness
+        witness_missed_blocks "relaylogix"
+        # Disregard first scan to eliminate bogus email from initialized data unequalities upon script startup
+	if [ $init != 0 ]; then
+		# Verify witness_missed_blocks returned valid data
+                if [ "$GOOD_DATA" = 1 ]; then
+			# Compare this scan missed to last scan missed
+                        if [ "$MISSED" != "${last_missed[0]}" ]; then
+				# Missed blocks are different alert witness by email
+                                echo "Your Smoke.io witness has missed a block." | mail -s "Smoke Network Witness Down" "stoners@gmail.com"
+                        fi
+                fi
+        fi
+	# Set last scan missed blocks to this scan missed blocks for next scan comparison
+        last_missed[0]="$MISSED"
+
+        #Control scan time to avoid to many request to the RPC server.
+        sleep 10
+
+        #Once through, initial values set [First Scan Bit]
+        init=1
+done
+
+exit 0
+
